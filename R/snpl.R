@@ -1,6 +1,4 @@
-#' Population Evolution using Leslie Matrix
-#' Evolve a population
-#' #######Copied from class files. Modify as needed. ########
+#' Age Structure Population Model using Leslie Matrix
 #' @param fecundity fecundity rates
 #' @param survivorship survivorship rates
 #' @param Po initial population
