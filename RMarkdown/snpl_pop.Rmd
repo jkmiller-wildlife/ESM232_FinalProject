@@ -1,0 +1,94 @@
+---
+title: "Snowy Plover Management"
+author: "Jamie Miller"
+date: "May 31, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+## Set up Leslie Matrices for snowy plover age structure population model
+```{r setup}
+# Four Age Classes: Egg, Chick, Juvenile, Adult
+nclasses = 4
+
+# create a growth matrix to store fecundity and survivorship information
+gmatrix=matrix(nrow=nclasses, ncol=nclasses)
+gmatrix
+
+# change NAs to zero
+gmatrix[]=0.0
+gmatrix
+
+# assign values for fecundity for each of the age classes 
+# notes that fecundity rates are births per capita (number in class) per time step
+# At VAFB: average fledge succecss is 1.3 fledges per male; in 2019, 220 adults, 1156 eggs, 588 chicks, 134 fledges 
+### 1156/220 # 5.25 eggs per adult
+### 220/1156 # 0.19 adults per egg; that makes no sense as a measure of fecundity
+
+fecund =  c(0,0,0,5.25)
+
+# enter into our matrix
+ gmatrix[1,]=fecund
+ 
+# Survivorship probabilities (to the next class) per time step, using 2019 data.
+#588/1156 # 0.509 Hatch Rate, Chicks/Eggs
+#134/588 # 0.228 Fledge rate, Fledges/Eggs
+ 
+gmatrix[2,1]=0.509  
+gmatrix[3,2]=0.228
+gmatrix[4,3]=0.2 #Adjust this number
+
+# Adult survivorship to the following year
+gmatrix[4,4]=0.9 #Adjust this number
+
+gmatrix
+
+```
+
+Now use the matrix to grow a population 
+```{r}
+
+# start with an initial population, lets say 1 individual in each class
+
+#p0 = rep(1, times=nclasses)
+p0 = c(1156,588,134,220)
+
+# advance to the next time step
+# note the use of matrix multiplication
+
+p1 = gmatrix %*% p0
+p1
+
+# has the total number of individuals changed?
+
+
+sum(p1)
+sum(p0)
+
+# growth rate
+sum(p1)/sum(p0)
+
+#add another year
+p2 = gmatrix %*% p1
+p3 = gmatrix %*% p2
+
+# combined
+pop = cbind.data.frame(p0,p1,p2,p3)
+pop$age = c("Eggs","Chicks","Juveniles","Adults")
+
+popl = pop %>% gather(key="timestep",value="pop",-age)
+ggplot(popl, aes(timestep, pop,fill=as.factor(age)))+geom_col(position="dodge")+labs(fill="Age Group")
+
+
+# how might you change parameters to have the population grow?
+
+```
+
+
+
+
+
