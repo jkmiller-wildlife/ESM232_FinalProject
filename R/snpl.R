@@ -9,7 +9,7 @@
 #' @return population structure for each time step (OR error message if population cannot be defined)
 
 
-evolve_popK = function(fecundity, survivorship, Po, nstep,K=0) {
+snpl_popK = function(fecundity, survivorship, Po, nstep, K) {
   
   nclasses = length(fecundity)
   
@@ -31,22 +31,21 @@ evolve_popK = function(fecundity, survivorship, Po, nstep,K=0) {
   leslie_matrix[nclasses,nclasses] = survivorship[nclasses]
   
   # create an matrix to store population structure
-  pop.structure = matrix(nrow=nclasses, ncol=nstep)
-  
-  pop.structure[,1] = Po
+  pop_structure = matrix(nrow=nclasses, ncol=nstep)
+  pop_structure[,1] = Po
   
   for (i in 2:nstep) {
     
-    total.pop=sum(pop.structure[,i-1])
+    total_pop=sum(pop_structure[,i-1])
     
     # if we are using a carrying capacity adjust fertitlity if we are getting close
     if (K > 0) {
-      ratio = max(0, 1.0-total.pop/K)
+      ratio = max(0, 1.0-total_pop/K)
       leslie_matrix[1,] = fecundity*ratio
     }
-    pop.structure[,i] = leslie_matrix %*% pop.structure[,i-1]
+    pop_structure[,i] = leslie_matrix %*% pop_structure[,i-1]
     
   }
   
-  return(pop.structure)
+  return(list(pop_structure=pop_structure, total_pop=total_pop))
 }
