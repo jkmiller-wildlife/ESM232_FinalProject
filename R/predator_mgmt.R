@@ -6,10 +6,11 @@
 #' @param pred_mgmt_funding Funding, in unit of 1,000 USD
 #' @param rmv_eff Removal efficiency per 1,000 USD?
 #' @param min minimum population. We don't want to eradicate predator species?
+#' @param limit Even if we allow predator to reproduce for a while, we don't allow them to go over this population limit
 
 
 # Raven population mgmt.
-raven_pop = function(t, P0, r, K, mgmt_action=F, pred_mgmt_funding, rmv_eff = 15, min=0.2){
+raven_pop = function(t, P0, r, K, mgmt_action=F, pred_mgmt_funding, rmv_eff = 15, min, limit){
   
   raven_pop = c(P0)
   
@@ -17,16 +18,18 @@ raven_pop = function(t, P0, r, K, mgmt_action=F, pred_mgmt_funding, rmv_eff = 15
     if (mgmt_action == T){
       pred_rmv = rmv_eff * pred_mgmt_funding # funding=unit of thousands
       if (pred_rmv > raven_pop[i]){
-        pred_rmv = raven_pop[i] # Since you cannot remove predator that does not exists...
+        pred_rmv = 0.9 * raven_pop[i] # Since you cannot remove predator that does not exists...
       }
       #P = raven_pop[i] * (exp(r) - pred_rmv)
       P = raven_pop[i] * exp(r) - pred_rmv
       if (P > K) {
         P = K
       } else if (P < (min * P0)){
-        P = raven_pop[i] * exp(r)    #Just leave them alone for a while? because we don't care much about raven...
-        #If we choose to manage raven population not to go under certain population.
-        #P = min * P0 
+        #If we choose to pause full-force removal, and leave them alone for a while, unless they exceed certain number.
+        P = raven_pop[i] * exp(r)
+        if (P > (limit*P0)){
+          P = limit * P0 * exp(r)
+        }
       }
     } else if (mgmt_action == F){
       P = raven_pop[i] * exp(r)
@@ -45,7 +48,7 @@ raven_pop = function(t, P0, r, K, mgmt_action=F, pred_mgmt_funding, rmv_eff = 15
 
 
 # faclong population mgmt
-falcon_pop = function(t, P0, r, K, mgmt_action=F, pred_mgmt_funding, rmv_eff = 3, min=0.8){
+falcon_pop = function(t, P0, r, K, mgmt_action=F, pred_mgmt_funding, rmv_eff = 3, min=0.8, limit){
   
   falcon_pop = c(P0)
   
@@ -53,15 +56,17 @@ falcon_pop = function(t, P0, r, K, mgmt_action=F, pred_mgmt_funding, rmv_eff = 3
     if (mgmt_action == T){
       pred_rmv = rmv_eff * pred_mgmt_funding # funding = unit of thousands
       if (pred_rmv > falcon_pop[i]){
-        pred_rmv = falcon_pop[i] # Since you cannot remove predator that does not exists...
+        pred_rmv = 0.9 * falcon_pop[i] # Since you cannot remove predator that does not exists...
       }
       P = falcon_pop[i] * exp(r) -pred_rmv
       if (P > K) {
         P = K
       } else if (P < min * P0){
-        #P = min * P0    # Manage falcon population not to go under certain number?
-        #If we choose to just leave them alone for a while? 
+        #If we choose to pause full-force removal, and leave them alone for a while, unless they exceed certain number.
         P = falcon_pop[i] * exp(r)
+        if (P > (limit*P0)){
+          P = limit * P0 * exp(r)
+        }
       }
     } else if (mgmt_action == F){
       P = falcon_pop[i] * exp(r)

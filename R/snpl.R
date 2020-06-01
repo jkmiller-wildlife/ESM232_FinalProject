@@ -130,6 +130,7 @@ snpl_pop3 = function(fecundity, survivorship, Po, nstep, K, predatorpop) {
   # create an matrix to store population structure
   pop_structure = matrix(nrow=nclasses, ncol=nstep)
   pop_structure[,1] = Po
+  survivorship_t =c()
   
   for (i in 2:nstep) {
     
@@ -137,26 +138,44 @@ snpl_pop3 = function(fecundity, survivorship, Po, nstep, K, predatorpop) {
     
     
     
-    ### Survivorship= (total - death)/total
-    ### death = predation + etc = K * predator_pop + etc
-    ### death0 = K * predator_pop0 + etc
-    ### let's assume 80% is gone by predation.
-    ### K = 0.8 * death0/predator_pop0
-    ### etc = 0.2 * death0
-    ### deatht = 0.8 * death0 * predator_popt/predator_pop0 + 0.2 * death0
+    ### Survivorship = 1-deathr
+    ### deathr = 1 - survivorship
+    
+    ### deathr = predation + b = a * predator_pop + b
+    ### deathr_0 = a * predator_0 + b
+    
+    ### let's assume 80% is gone by predation. and the other 20% is other cause.
+    ### a = 0.8 * deathr_0/predator_pop0
+    ### b = 0.2 * deathr_0 <- some kind of constant/intercept, but affected by snpl population change.
+    ### b_t = 0.2 * deathr_0 * snpl_t/snpl_0
+    
+    ### deathr_t = a * predator_t + b_t
+    ###          = 0.8 * deathr_0/predator_0 * predator_t + 0.2 * deathr_0 * snpl_t/snpl_0
+    
+    ### Survivorship_t = 1 - deathr_t
+    ###                = 1- (0.8 * deathr_0/predator_0 * predator_t) - 0.2 * deathr_0 * total_t/total_0
     
     #egg
-    survivorship[1] = 0.8 * (1-survivorship[1]) * predatorpop[1,i]/predatorpop[1,i-1] + 0.2 * (1-survivorship[1])
-    #chick : raven 0.4 vs falcon 0.6 weight.
-    survivorship[2] = 0.8 * (1-survivorship[2]) * (0.4* predatorpop[1,i]/predatorpop[1,i-1] + 0.6 *predatorpop[2,i]/predatorpop[2,i-1]) + 0.2 * (1-survivorship[2])
-    #Juvenile
-    survivorship[3] = 0.8 * (1-survivorship[3]) * predatorpop[2,i]/predatorpop[2,i-1] + 0.2 * (1-survivorship[3])
-    survivorship[4] = 0.8 * (1-survivorship[4]) * predatorpop[2,i]/predatorpop[2,i-1] + 0.2 * (1-survivorship[4])
+    survivorship_t[1] = 1 - 0.8 * (1-survivorship[1]) * predatorpop[1,i-1]/predatorpop[1,1] - 
+      0.2 * (1-survivorship[1]) * pop_structure[1, i-1]/pop_structure[1, 1]
     
+    #chick : raven 0.4 vs falcon 0.6 weight.
+    survivorship_t[2] = 1 - 0.8 * (1-survivorship[2]) * (0.4* predatorpop[1,i-1]/predatorpop[1,1] + 0.6 *predatorpop[2,i-1]/predatorpop[2,1]) -
+      0.2 * (1-survivorship[2]) * pop_structure[2, i-1]/pop_structure[2, 1]
+    #Juvenile
+    survivorship_t[3] = 1 - 0.8 * (1-survivorship[3]) * predatorpop[2,i-1]/predatorpop[2,1] - 
+      0.2 * (1-survivorship[3]) * pop_structure[3, i-1]/pop_structure[3, 1]
+    # Adult
+    survivorship_t[4] = 1 - 0.8 * (1-survivorship[4]) * predatorpop[2,i-1]/predatorpop[2,1] -
+      0.2 * (1-survivorship[4]) * pop_structure[4, i-1]/pop_structure[4, 1]
+    
+    survivorship_t[survivorship_t < 0] = 0
+    
+    ## put it into leslie matrix
     for (j in 1:(nclasses-1)) {
-      leslie_matrix[j+1,j] = survivorship[j]
+      leslie_matrix[j+1,j] = survivorship_t[j]
     }
-    leslie_matrix[nclasses,nclasses] = survivorship[nclasses]
+    leslie_matrix[nclasses,nclasses] = survivorship_t[nclasses]
     
     
     
