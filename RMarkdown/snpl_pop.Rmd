@@ -36,7 +36,7 @@ fecund =  c(0,0,0,5.25)
  
 # Survivorship probabilities (to the next class) per time step, using 2019 data.
 #588/1156 # 0.509 Hatch Rate, Chicks/Eggs
-#134/588 # 0.228 Fledge rate, Fledges/Eggs
+#134/588 # 0.228 Fledge rate, Fledges/Chicks
  
 gmatrix[2,1]=0.509  
 gmatrix[3,2]=0.228
@@ -117,6 +117,9 @@ surv_snpl = c(p_egg,p_chick,p_fledge,p_adult)
 K = 10000 # VAFB Carrying capacity, based on Recover Goals; lookup actual value and adjust 
    ### K is not working in the model the way I thin kit should. Want it to apply only to adults, but it is applying to all life stages.
    ### Consider removing K from model and representing this information graphically.
+### ===================================================================================
+### changed code in snpl.R(line 41~44), and now K only applies to adult population. ###
+### ===================================================================================
 
 snpl_pop=snpl_popK(fert_snpl, surv_snpl, ini, n_years,K) # Population Structure
 
@@ -145,6 +148,81 @@ ggplot(snpl_agesl, aes(year, pop, fill=agecat)) +
 ```
 
 ## Next step: Apply Habitat and Predator Management Functions
+```{r}
+
+# Output matrix of predator MGMT should go into snpl.R
+
+source("../R/predator_mgmt.R")
+source("../R/snpl.R")
+library(tidyverse)
+
+funding = 6 #in thousands?
+raven_p = raven_pop(n_years, 83, 0.4, 100, mgmt_action = T, funding, rmv_eff= 9, min = 0.4)
+falcon_p = falcon_pop(n_years, 47, 0.3, 60, mgmt_action = T, funding, rmv_eff= 4, min = 0.6)
+
+print(raven_p)
+print(falcon_p)
+
+tmp = list(egg_predation(raven_p), chick_predation(raven_p, falcon_p), juvenile_predation(falcon_p), adult_predation(falcon_p))
+x = list(raven_p, falcon_p)
+
+
+predatorpop_matrix = x %>% unlist() %>% matrix(ncol=n_years, byrow = T)
+# row1= raven, row2=falcon
+
+predation_matrix = tmp %>% unlist() %>% matrix(ncol=n_years, byrow = T) #%>% as.data.frame()
+# row1= egg, row2= chick, row3=juvenile, row4=adult
+
+rm(tmp,x)
+
+snpl_pop2=snpl_pop2(fert_snpl, surv_snpl, ini, n_years, K, predation_matrix) # Test purpose
+snpl_tot2 = cbind.data.frame(year=year, adult_pop=snpl_pop2$pop_structure[4,])
+
+snpl_pop3=snpl_pop3(fert_snpl, surv_snpl, ini, n_years, K, predatorpop_matrix) # Test purpose
+snpl_tot3 = cbind.data.frame(year=year, adult_pop=snpl_pop3$pop_structure[4,])
+
+
+{
+  p1<-ggplot(snpl_tot2, aes(year, adult_pop)) +
+         geom_col() +
+         labs(y="Total Adult SNPL Population")
+
+  # Plot all ages by year
+  snpl_ages2 = cbind.data.frame(year=year, t(snpl_pop2$pop_structure))
+  snpl_agesl2 = snpl_ages2 %>% 
+  gather(key="agecat", value="pop",-year)
+
+  p2<-ggplot(snpl_agesl2, aes(year, pop, fill=agecat)) +
+  geom_col() +
+  labs(y="Population", fill="Age Group")
+  
+  show(p1)
+  show(p2)
+}
+
+
+
+### Something wrong...
+{
+  p1<-ggplot(snpl_tot3, aes(year, adult_pop)) +
+         geom_col() +
+         labs(y="Total Adult SNPL Population")
+
+
+# Plot all ages by year
+  snpl_ages3 = cbind.data.frame(year=year, t(snpl_pop3$pop_structure))
+  snpl_agesl3 = snpl_ages3 %>% 
+  gather(key="agecat", value="pop",-year)
+
+  p2<-ggplot(snpl_agesl3, aes(year, pop, fill=agecat)) +
+  geom_col() +
+  labs(y="Population", fill="Age Group")
+  
+  show(p1)
+  show(p2)
+}
+
+```
 
 
 
@@ -152,7 +230,7 @@ ggplot(snpl_agesl, aes(year, pop, fill=agecat)) +
 
 
 
-
+### snp
 
 
 

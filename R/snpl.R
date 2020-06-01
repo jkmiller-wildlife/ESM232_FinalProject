@@ -38,10 +38,141 @@ snpl_popK = function(fecundity, survivorship, Po, nstep, K) {
     
     # if we are using a carrying capacity adjust fertitlity if we are getting close
     if (K > 0) {
-      ratio = max(0, 1.0-total_pop/K)
-      leslie_matrix[1,] = fecundity*ratio
+      #ratio = max(0, 1.0-total_pop/K) #Commented out by Donny Kim. Apply K only to adult population.
+      ratio = max(0, 1.0-pop_structure[4,i-1]/K)
+      #leslie_matrix[1,] = fecundity*ratio #Commented out by Donny Kim. Apply K only to adult population.
+      leslie_matrix[1,4] = fecundity[4]*ratio
     }
     pop_structure[,i] = leslie_matrix %*% pop_structure[,i-1]
+    
+  }
+  
+  return(list(pop_structure=pop_structure, total_pop=total_pop))
+}
+
+
+
+
+############### First try to apply predator = Bad.
+snpl_pop2 = function(fecundity, survivorship, Po, nstep, K, predation) {
+  
+  nclasses = length(fecundity)
+  
+  # make sure inputs are in the right format
+  if ((nclasses!=length(survivorship) ))
+  { return("fecundity doesn’t match survivorship") }
+  
+  if ((nclasses!=length(Po) ))
+  { return("initial population doesn’t match fecundity") }
+  
+  #initialize the Leslie matrix
+  leslie_matrix = matrix(nrow=nclasses, ncol=nclasses)
+  leslie_matrix[,] = 0.0
+  leslie_matrix[1,] = fecundity
+  
+  for (i in 1:(nclasses-1)) {
+    leslie_matrix[i+1,i] = survivorship[i]
+  }
+  leslie_matrix[nclasses,nclasses] = survivorship[nclasses]
+  
+  # create an matrix to store population structure
+  pop_structure = matrix(nrow=nclasses, ncol=nstep)
+  pop_structure[,1] = Po
+  
+  for (i in 2:nstep) {
+    
+    total_pop=sum(pop_structure[,i-1])
+    
+    # if we are using a carrying capacity adjust fertitlity if we are getting close
+    if (K > 0) {
+      #ratio = max(0, 1.0-total_pop/K) #Commented out by Donny Kim
+      ratio = max(0, 1.0-pop_structure[4,i-1]/K)
+      #leslie_matrix[1,] = fecundity*ratio #Commented out by DOnny Kim
+      leslie_matrix[1,4] = fecundity[4]*ratio
+    }
+    x = pop_structure[,i-1] - predation[,i]
+    x[x<0] = 0
+    x=matrix(x, ncol=1)
+    #pop_structure[,i] = leslie_matrix %*% (pop_structure[,i-1] - predation[,i])
+    pop_structure[,i] = leslie_matrix %*% (x)
+    
+  }
+  
+  return(list(pop_structure=pop_structure, total_pop=total_pop))
+}
+
+
+
+
+
+############### Final version that considers predator.
+snpl_pop3 = function(fecundity, survivorship, Po, nstep, K, predatorpop) {
+  
+  nclasses = length(fecundity)
+  
+  # make sure inputs are in the right format
+  if ((nclasses!=length(survivorship) ))
+  { return("fecundity doesn’t match survivorship") }
+  
+  if ((nclasses!=length(Po) ))
+  { return("initial population doesn’t match fecundity") }
+  
+  #initialize the Leslie matrix
+  leslie_matrix = matrix(nrow=nclasses, ncol=nclasses)
+  leslie_matrix[,] = 0.0
+  leslie_matrix[1,] = fecundity
+  
+  #for (i in 1:(nclasses-1)) {
+  #  leslie_matrix[i+1,i] = survivorship[i]
+  #}
+  #leslie_matrix[nclasses,nclasses] = survivorship[nclasses]
+  
+  # create an matrix to store population structure
+  pop_structure = matrix(nrow=nclasses, ncol=nstep)
+  pop_structure[,1] = Po
+  
+  for (i in 2:nstep) {
+    
+    total_pop=sum(pop_structure[,i-1])
+    
+    
+    
+    ### Survivorship= (total - death)/total
+    ### death = predation + etc = K * predator_pop + etc
+    ### death0 = K * predator_pop0 + etc
+    ### let's assume 80% is gone by predation.
+    ### K = 0.8 * death0/predator_pop0
+    ### etc = 0.2 * death0
+    ### deatht = 0.8 * death0 * predator_popt/predator_pop0 + 0.2 * death0
+    
+    #egg
+    survivorship[1] = 0.8 * (1-survivorship[1]) * predatorpop[1,i]/predatorpop[1,i-1] + 0.2 * (1-survivorship[1])
+    #chick : raven 0.4 vs falcon 0.6 weight.
+    survivorship[2] = 0.8 * (1-survivorship[2]) * (0.4* predatorpop[1,i]/predatorpop[1,i-1] + 0.6 *predatorpop[2,i]/predatorpop[2,i-1]) + 0.2 * (1-survivorship[2])
+    #Juvenile
+    survivorship[3] = 0.8 * (1-survivorship[3]) * predatorpop[2,i]/predatorpop[2,i-1] + 0.2 * (1-survivorship[3])
+    survivorship[4] = 0.8 * (1-survivorship[4]) * predatorpop[2,i]/predatorpop[2,i-1] + 0.2 * (1-survivorship[4])
+    
+    for (j in 1:(nclasses-1)) {
+      leslie_matrix[j+1,j] = survivorship[j]
+    }
+    leslie_matrix[nclasses,nclasses] = survivorship[nclasses]
+    
+    
+    
+    
+    # if we are using a carrying capacity adjust fertitlity if we are getting close
+    if (K > 0) {
+      #ratio = max(0, 1.0-total_pop/K) #Commented out by Donny Kim
+      ratio = max(0, 1.0-pop_structure[4,i-1]/K)
+      #leslie_matrix[1,] = fecundity*ratio #Commented out by DOnny Kim
+      leslie_matrix[1,4] = fecundity[4]*ratio
+    }
+    #x = pop_structure[,i-1] - predation[,i]
+    #x[x<0] = 0
+    #x=matrix(x, ncol=1)
+    pop_structure[,i] = leslie_matrix %*% (pop_structure[,i-1])
+    #pop_structure[,i] = leslie_matrix %*% (x)
     
   }
   

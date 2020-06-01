@@ -9,20 +9,21 @@
 
 
 # Raven population mgmt.
-raven_pop = function(t, P0, r, K, mgmt_action=F, pred_mgmt_funding, rmv_eff = 0.015, min=0.5){
+raven_pop = function(t, P0, r, K, mgmt_action=F, pred_mgmt_funding, rmv_eff = 15, min=0.2){
   
   raven_pop = c(P0)
   
-  for (i in 1:t){
+  for (i in 1:(t-1)){
     if (mgmt_action == T){
-      pred_rmv = rmv_eff * pred_mgmt_funding # unit of thousands
-      if (pred_rmv > 1){
-        pred_rmv = 1 # Since you cannot remove predator that does not exists...
+      pred_rmv = rmv_eff * pred_mgmt_funding # funding=unit of thousands
+      if (pred_rmv > raven_pop[i]){
+        pred_rmv = raven_pop[i] # Since you cannot remove predator that does not exists...
       }
-      P = raven_pop[i] * (exp(r) - pred_rmv)
+      #P = raven_pop[i] * (exp(r) - pred_rmv)
+      P = raven_pop[i] * exp(r) - pred_rmv
       if (P > K) {
         P = K
-      } else if (P < min * P0){
+      } else if (P < (min * P0)){
         P = raven_pop[i] * exp(r)    #Just leave them alone for a while? because we don't care much about raven...
         #If we choose to manage raven population not to go under certain population.
         #P = min * P0 
@@ -34,7 +35,7 @@ raven_pop = function(t, P0, r, K, mgmt_action=F, pred_mgmt_funding, rmv_eff = 0.
       }
     }
     
-    raven_pop = c(raven_pop, P)
+    raven_pop = c(raven_pop, round(P, 0))
   }
   
   
@@ -44,23 +45,23 @@ raven_pop = function(t, P0, r, K, mgmt_action=F, pred_mgmt_funding, rmv_eff = 0.
 
 
 # faclong population mgmt
-falcon_pop = function(t, P0, r, K, mgmt_action=F, pred_mgmt_funding, rmv_eff = 0.01, min=0.8){
+falcon_pop = function(t, P0, r, K, mgmt_action=F, pred_mgmt_funding, rmv_eff = 3, min=0.8){
   
   falcon_pop = c(P0)
   
-  for (i in 1:t){
+  for (i in 1:(t-1)){
     if (mgmt_action == T){
-      pred_rmv = rmv_eff * pred_mgmt_funding # unit of thousands
-      if (pred_rmv > 1){
-        pred_rmv = 1 # Since you cannot remove predator that does not exists...
+      pred_rmv = rmv_eff * pred_mgmt_funding # funding = unit of thousands
+      if (pred_rmv > falcon_pop[i]){
+        pred_rmv = falcon_pop[i] # Since you cannot remove predator that does not exists...
       }
-      P = falcon_pop[i] * (exp(r) - pred_rmv)
+      P = falcon_pop[i] * exp(r) -pred_rmv
       if (P > K) {
         P = K
       } else if (P < min * P0){
-        P = min * P0    # Manage falcon population not to go under certain number.
+        #P = min * P0    # Manage falcon population not to go under certain number?
         #If we choose to just leave them alone for a while? 
-        #P = falcon_pop[i] * exp(r)
+        P = falcon_pop[i] * exp(r)
       }
     } else if (mgmt_action == F){
       P = falcon_pop[i] * exp(r)
@@ -69,7 +70,7 @@ falcon_pop = function(t, P0, r, K, mgmt_action=F, pred_mgmt_funding, rmv_eff = 0
       }
     }
     
-    falcon_pop = c(falcon_pop, P)
+    falcon_pop = c(falcon_pop, round(P,0))
   }
   
   
@@ -90,7 +91,7 @@ falcon_pop = function(t, P0, r, K, mgmt_action=F, pred_mgmt_funding, rmv_eff = 0
 
 # Egg predation fuction. Returns a likely NUMBER of eggs to be predated. 
 egg_predation = function(raven){
-  pred_n = raven * 30
+  pred_n = raven * 4
    
   return(pred_n)
 }
@@ -98,7 +99,7 @@ egg_predation = function(raven){
 
 
 chick_predation = function(raven, falcon){
-  pred_n = raven *2 + falcon * 8
+  pred_n = raven *2 + falcon * 3
   
   return(pred_n)
 }
@@ -106,7 +107,7 @@ chick_predation = function(raven, falcon){
 
 
 juvenile_predation = function(falcon){
-  pred_n = falcon * 6
+  pred_n = falcon * 2
   
   return(pred_n)
 }
@@ -114,7 +115,7 @@ juvenile_predation = function(falcon){
 
 
 adult_predation = function(falcon){
-  pred_n = falcon * 4
+  pred_n = falcon * 1
   
   return(pred_n)
 }
