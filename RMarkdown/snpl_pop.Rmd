@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 ```
 
-## Set up Leslie Matrices for snowy plover age structure population model
+## 1. Set up Leslie Matrices for snowy plover age structure population model
 ```{r setup matrix manually}
 # Four Age Classes: Egg, Chick, Juvenile, Adult
 nclasses = 4
@@ -32,7 +32,7 @@ gmatrix
 fecund =  c(0,0,0,5.25)
 
 # enter into our matrix
- gmatrix[1,]=fecund
+gmatrix[1,]=fecund
  
 # Survivorship probabilities (to the next class) per time step, using 2019 data.
 #588/1156 # 0.509 Hatch Rate, Chicks/Eggs
@@ -44,7 +44,6 @@ gmatrix[4,3]=0.33 #Adjust this number
 
 # Adult survivorship to the following year
 gmatrix[4,4]=0.6 #Adjust this number
-
 gmatrix
 
 ```
@@ -85,7 +84,7 @@ ggplot(popl, aes(timestep, pop,fill=as.factor(age)))+geom_col(position="dodge")+
 ```
 
 
-## Use the snpl.R function to calcutlate the age structure model and predict adult population over time. 
+## 2. Use the snpl.R function to calcutlate the age structure model and predict adult population over time. 
 ```{r multitime}
 
 source("../R/snpl.R")
@@ -147,6 +146,7 @@ ggplot(snpl_agesl, aes(year, pop, fill=agecat)) +
 
 ```
 
+<<<<<<< HEAD
 ## Next step: Apply Habitat and Predator Management Functions
 ```{r}
 
@@ -205,11 +205,60 @@ snpl_tot3 = cbind.data.frame(year=year, adult_pop=snpl_pop3$pop_structure[4,])
 ### Something wrong...
 {
   p1<-ggplot(snpl_tot3, aes(year, adult_pop)) +
+=======
+## 3. Apply Habitat and Predator Management Functions
+```{r multitime}
+
+source("../R/snpl.R")
+source("../R/habit.R")
+source("../R/predator_mgmt.R")
+
+# At VAFB: average fledge succecss is 1.3 fledges per male; in 2019, 220 adults, 1156 eggs, 588 chicks, 134 fledges 
+### 1156/220 # 5.25 eggs per adult
+### 220/1156 # 0.19 adults per egg; that makes no sense as a measure of fecundity
+
+# Fecundity Rates
+F_adult = 5.25*0.6 # 1156/220 # 5.25 eggs per adult, M to F ratio of 0.6 (3 males to 2 females). represents number eggs per female; adjust for diff sex ratios
+
+x
+
+# Survivorship probabilities (to the next class) per time step, using 2019 data.
+#588/1156 # 0.509 Hatch Rate, Chicks/Eggs
+#134/588 # 0.228 Fledge rate, Fledges/Eggs
+
+# Survivorship - based on 2019 survivoral probabilities
+p_egg = 1-50.9/100 # Hatch rate
+p_chick = 1-22.8/100 # Fledge rate
+p_fledge = 1-33/100 # First Winter Survival, assume 33% make it; Adjust this value as needed.
+p_adult = 1-66/100 # Adult survivorship, assume 66% make it; Adjust this value as needed.
+
+
+# initial population parameters
+# In 2019, 1156 eggs, 588 chicks, 134 fledges, 220 adults
+ini = c(1156,588,134,220)
+n_years = 15
+fert_snpl = c(0,0,0,F_adult)
+surv_snpl = c(p_egg,p_chick,p_fledge,p_adult)
+K = 10000 # VAFB Carrying capacity, based on Recover Goals; lookup actual value and adjust 
+   ### K is not working in the model the way I thin kit should. Want it to apply only to adults, but it is applying to all life stages.
+   ### Consider removing K from model and representing this information graphically.
+
+snpl_pop=snpl_popK(fert_snpl, surv_snpl, ini, n_years,K) # Population Structure
+
+head(snpl_pop)
+
+# Plot adult population by year
+year = seq(from=1, to=n_years)
+snpl_tot = cbind.data.frame(year=year, adult_pop=snpl_pop$pop_structure[4,])
+
+ggplot(snpl_tot, aes(year, adult_pop)) +
+>>>>>>> d6dc584ca354411254312338eab24bdf185139e3
          geom_col() +
          labs(y="Total Adult SNPL Population")
 
 
 # Plot all ages by year
+<<<<<<< HEAD
   snpl_ages3 = cbind.data.frame(year=year, t(snpl_pop3$pop_structure))
   snpl_agesl3 = snpl_ages3 %>% 
   gather(key="agecat", value="pop",-year)
@@ -221,6 +270,17 @@ snpl_tot3 = cbind.data.frame(year=year, adult_pop=snpl_pop3$pop_structure[4,])
   show(p1)
   show(p2)
 }
+=======
+snpl_ages = cbind.data.frame(year=year, t(snpl_pop$pop_structure))
+snpl_agesl = snpl_ages %>% 
+  gather(key="agecat", value="pop",-year)
+
+ggplot(snpl_agesl, aes(year, pop, fill=agecat)) +
+  geom_col() +
+  labs(y="Population", fill="Age Group")
+
+# The following graphs predict snowy plover adult population and age structure over 15 years if 2019 fecundity and survivorship rates apply to all years.
+>>>>>>> d6dc584ca354411254312338eab24bdf185139e3
 
 ```
 
