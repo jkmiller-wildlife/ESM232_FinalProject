@@ -8,11 +8,11 @@
 # I just wrote down random numbers and formula. Need to apply one that makes sense.
 # To keep funding more...legible, let's say we use numerical unit of 1,000? (e.g. 100 equals to 100k dollars)
 
-habitat_area = function(original_area=100, 
-                        init_mgmt=F, maint_mgmt=F, 
+habitat_area = function(original_area=1, 
+                        init_mgmt=T, maint_mgmt=T, 
                         init_funding=NA, maint_funding=NA,
                         n_time,
-                        a=0.0002, b=0.0025, c= -0.05){
+                        a=0.0002, b=0.001, c= -0.05){
   
   habitat_area = c(original_area)
   
@@ -35,5 +35,5 @@ habitat_area = function(original_area=100,
   return(habitat_area)
 }
 
-x <-habitat_area(1000, init_mgmt = T, maint_mgmt = T, init_funding = 300, maint_funding = 20, n_time = 30)
+x <-habitat_area(1, init_mgmt = T, maint_mgmt = T, init_funding = 400, maint_funding = 30, n_time = 30)
 print(x)

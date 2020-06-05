@@ -105,8 +105,8 @@ snpl_pop2 = function(fecundity, survivorship, Po, nstep, K, predation) {
 
 
 
-############### Final version that considers predator.
-snpl_pop3 = function(fecundity, survivorship, Po, nstep, K, predatorpop) {
+############### Final version that considers predator population and habitat area
+snpl_pop3 = function(fecundity, survivorship, Po, nstep, K, predatorpop, area) {
   
   nclasses = length(fecundity)
   
@@ -133,6 +133,8 @@ snpl_pop3 = function(fecundity, survivorship, Po, nstep, K, predatorpop) {
   survivorship_t =c()
   
   for (i in 2:nstep) {
+    
+    leslie_matrix[1,] = fecundity * area[i]
     
     total_pop=sum(pop_structure[,i-1])
     
@@ -190,7 +192,7 @@ snpl_pop3 = function(fecundity, survivorship, Po, nstep, K, predatorpop) {
     #x = pop_structure[,i-1] - predation[,i]
     #x[x<0] = 0
     #x=matrix(x, ncol=1)
-    pop_structure[,i] = leslie_matrix %*% (pop_structure[,i-1])
+    pop_structure[,i] = as.integer(leslie_matrix %*% (pop_structure[,i-1]))
     #pop_structure[,i] = leslie_matrix %*% (x)
     
   }

@@ -10,7 +10,7 @@
 
 
 # Raven population mgmt.
-raven_pop = function(t, P0, r, K, mgmt_action=F, pred_mgmt_funding, rmv_eff = 15, min, limit){
+raven_pop = function(t, P0, r=0.4, K, mgmt_action=T, pred_mgmt_funding, rmv_eff = 4, min, limit){
   
   raven_pop = c(P0)
   
@@ -48,7 +48,7 @@ raven_pop = function(t, P0, r, K, mgmt_action=F, pred_mgmt_funding, rmv_eff = 15
 
 
 # faclong population mgmt
-falcon_pop = function(t, P0, r, K, mgmt_action=F, pred_mgmt_funding, rmv_eff = 3, min=0.8, limit){
+falcon_pop = function(t, P0, r=0.3, K, mgmt_action=T, pred_mgmt_funding, rmv_eff = 3, min, limit){
   
   falcon_pop = c(P0)
   

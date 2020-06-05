@@ -160,6 +160,13 @@ ggplot(snpl_agesl, aes(year, pop, fill=agecat)) +
 source("../R/predator_mgmt.R")
 source("../R/snpl.R") # I don't know why but RMD keep losting snpl_pop3 function from its environment.
 
+F_adult = 5.25*0.6 # 1156/220 # 5.25 eggs per adult, M to F ratio of 0.6 (3 males to 2 females). represents number eggs per female; adjust for diff sex ratios
+ini = c(1156,588,134,220)
+n_years = 15
+fert_snpl = c(0,0,0,F_adult)
+surv_snpl = c(p_egg,p_chick,p_fledge,p_adult)
+K = 10000
+
 funding = 8 #in thousands?
 raven_p = raven_pop(n_years, 80, 0.4, 200, mgmt_action = T, funding, rmv_eff= 4, min = 0.2, limit= 0.5)
 falcon_p = falcon_pop(n_years, 40, 0.3, 100, mgmt_action = T, funding, rmv_eff= 4, min = 0.3, limit = 0.8)
@@ -169,6 +176,8 @@ tmp2 = list(raven_p, falcon_p)
 predation_matrix = tmp %>% unlist() %>% matrix(ncol=n_years, byrow = T) # row1= egg, row2= chick, row3=juvenile, row4=adult
 predatorpop_matrix = tmp2 %>% unlist() %>% matrix(ncol=n_years, byrow = T) # row1= raven, row2=falcon
 rm(tmp,tmp2)
+
+area = habitat_area(1, init_mgmt = T, maint_mgmt = T, init_funding = 200, maint_funding = 30, n_time = n_years)
 
 
 
@@ -197,7 +206,7 @@ p_fledge = 33/100 # First Winter Survival, assume 33% make it; Adjust this value
 p_adult = 66/100 # Adult survivorship, assume 66% make it; Adjust this value as needed.
 surv_snpl = c(p_egg,p_chick,p_fledge,p_adult)
 
-snpl_pop3=snpl_pop3(fert_snpl, surv_snpl, ini, n_years, K, predatorpop_matrix) # Test purpose
+snpl_pop3=snpl_pop3(fert_snpl, surv_snpl, ini, n_years, K, predatorpop_matrix, area) # Test purpose
 snpl_tot3 = cbind.data.frame(year=year, adult_pop=snpl_pop3$pop_structure[4,])
 
 
@@ -226,6 +235,98 @@ snpl_tot3 = cbind.data.frame(year=year, adult_pop=snpl_pop3$pop_structure[4,])
   show(p2)
 }
 ```
+
+```{r}
+source("../R/predator_mgmt.R")
+source("../R/snpl.R")
+source("../R/habit.R")
+
+F_adult = 5.25*0.6 # 1156/220 # 5.25 eggs per adult, M to F ratio of 0.6 (3 males to 2 females). represents number eggs per female; adjust for diff sex ratios
+ini = c(1156,588,134,220)
+n_years = 15
+
+p_egg = 50.9/100 # Hatch rate
+p_chick = 22.8/100 # Fledge rate 
+p_fledge = 33/100 # First Winter Survival, assume 33% make it; Adjust this value as needed.
+p_adult = 66/100 # Adult survivorship, assume 66% make it; Adjust this value as needed.
+
+fert_snpl = c(0,0,0,F_adult)
+surv_snpl = c(p_egg,p_chick,p_fledge,p_adult)
+
+
+np = 1000
+
+habitat_init_funding = rnorm(mean = 200, sd = 50, n=np)
+habitata_maint_funding = rnorm(mean = 50, sd = 20, n=np)
+pred_funding = rnorm(mean = 10, sd = 4, n=np)
+raven_min = runif(n=np, min = 0, max = 0.5)
+raven_lim = runif(n=np, min = 0.5, max = 1)
+falcon_min = runif(n=np, min =0, max = 0.5)
+falcon_lim = runif(n=np, min =0, max = 1)
+X1 = cbind.data.frame(habitat_init_funding=habitat_init_funding, habitata_maint_funding=habitata_maint_funding,
+                      pred_funding=pred_funding, raven_min=raven_min, raven_lim=raven_lim,
+                      falcon_min=falcon_min, falcon_lim=falcon_lim)
+
+habitat_init_funding = rnorm(mean = 200, sd = 10, n=np)
+habitata_maint_funding = rnorm(mean = 30, sd = 5, n=np)
+pred_funding = rnorm(mean = 10, sd = 4, n=np)
+raven_min = runif(n=np, min = 0, max = 0.5)
+raven_lim = runif(n=np, min = 0.5, max = 1)
+falcon_min = runif(n=np, min =0, max = 0.5)
+falcon_lim = runif(n=np, min =0, max = 1)
+X2 = cbind.data.frame(habitat_init_funding=habitat_init_funding, habitata_maint_funding=habitata_maint_funding,
+                      pred_funding=pred_funding, raven_min=raven_min, raven_lim=raven_lim,
+                      falcon_min=falcon_min, falcon_lim=falcon_lim)
+
+library(sensitivity)
+
+sens_P = sobol2007(model = NULL,X1, X2, nboot = 500)
+
+
+wrapper = function(n, initialP, fertility, survivorship,
+                   habitat_init_funding, habitata_maint_funding, pred_funding,
+                   raven_min, raven_lim,falcon_min, falcon_lim,
+                   func) {
+  
+  area = habitat_area(1, init_funding = habitat_init_funding, maint_funding = habitata_maint_funding, n_time=n)
+  
+  raven_p = raven_pop(n, P0=80, K=160, pred_mgmt_funding=pred_funding,
+                      min=raven_min ,limit=raven_lim)
+  
+  falcon_p = falcon_pop(n, P0=50, K=100, pred_mgmt_funding=pred_funding,
+                      min=falcon_min ,limit=falcon_lim)
+  
+  predatorpop_matrix = list(raven_p, falcon_p)
+  predatorpop_matrix = predatorpop_matrix %>% unlist() %>% matrix(ncol=n, byrow = T) # row1= raven, row2=falcon
+
+  snpl_p = snpl_pop3(fertility, survivorship, initialP, nstep=n, K=5000, predatorpop_matrix, area)
+
+  return(snpl_p$total_pop)
+}
+
+
+allresults = mapply(FUN=wrapper, 
+                   habitat_init_funding=sens_P$X$habitat_init_funding,
+                   habitata_maint_funding=sens_P$X$habitata_maint_funding,
+                   pred_funding=sens_P$X$pred_funding,
+                   raven_min=sens_P$X$raven_min, raven_lim=sens_P$X$raven_lim,
+                   falcon_min=sens_P$X$falcon_min, falcon_lim=sens_P$X$falcon_lim,
+                   MoreArgs=list(n=n_years, initialP=ini, fertility=fert_snpl, survivorship=surv_snpl,
+                                 func=snpl_pop3)
+                   )
+
+ggplot(data.frame(total_pop=allresults), aes(x=total_pop))+geom_density()
+
+sens_P_totalpop = sensitivity::tell(sens_P, allresults)
+sens_P_totalpop$S
+sens_P_totalpop$T
+plot(sens_P_totalpop)
+
+tmp = cbind.data.frame(sens_P_totalpop$X, total_pop=sens_P_totalpop$y)
+ggplot(tmp, aes(pred_funding, total_pop))+geom_point()+labs(x="Parm",y="total pop")
+
+```
+
 
 
 ### CODE BELOW DOES NOT WORK. JUST LEFT IT THERE JUST IN CASE.
