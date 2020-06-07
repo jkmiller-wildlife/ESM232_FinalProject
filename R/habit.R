@@ -34,6 +34,3 @@ habitat_area = function(original_area=1,
   
   return(habitat_area)
 }
-
-x <-habitat_area(1, init_mgmt = T, maint_mgmt = T, init_funding = 400, maint_funding = 30, n_time = 30)
-print(x)

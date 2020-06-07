@@ -8,6 +8,9 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+source("../R/predator_mgmt.R")
+source("../R/snpl.R")
+source("../R/habit.R")
 ```
 
 ## 1. Set up Leslie Matrices for snowy plover age structure population model
@@ -151,9 +154,9 @@ ggplot(snpl_agesl, aes(year, pop, fill=agecat)) +
 # The following graphs predict snowy plover adult population and age structure over 15 years if 2019 fecundity and survivorship rates apply to all years.
 
 ```
+<br><br>
 
-
-## Next step: Apply Habitat and Predator Management Functions
+## 3. Apply Habitat and Predator Management Functions
 ```{r}
 # Output matrix of predator MGMT should go into snpl.R
 
@@ -166,8 +169,10 @@ n_years = 15
 fert_snpl = c(0,0,0,F_adult)
 surv_snpl = c(p_egg,p_chick,p_fledge,p_adult)
 K = 10000
+year = seq(from=1, to=n_years)
 
-funding = 8 #in thousands?
+
+funding = 10 #in thousands?
 raven_p = raven_pop(n_years, 80, 0.4, 200, mgmt_action = T, funding, rmv_eff= 4, min = 0.2, limit= 0.5)
 falcon_p = falcon_pop(n_years, 40, 0.3, 100, mgmt_action = T, funding, rmv_eff= 4, min = 0.3, limit = 0.8)
 
@@ -222,7 +227,7 @@ snpl_tot3 = cbind.data.frame(year=year, adult_pop=snpl_popk3$pop_structure[4,])
          geom_col() +
          labs(y="Total Adult SNPL Population")
   
-  snpl_ages3 = cbind.data.frame(year=year, t(snpl_pop3$pop_structure))
+  snpl_ages3 = cbind.data.frame(year=year, t(snpl_popk3$pop_structure))
   snpl_agesl3 = snpl_ages3 %>% 
   gather(key="agecat", value="pop",-year)
 
@@ -235,9 +240,9 @@ snpl_tot3 = cbind.data.frame(year=year, adult_pop=snpl_popk3$pop_structure[4,])
   show(p2)
 }
 ```
+<br><br>
 
-
-### Below would be the final version of RMD.
+### 4. Apply Sobol sensitivity analysis
 ```{r}
 source("../R/predator_mgmt.R")
 source("../R/snpl.R")
