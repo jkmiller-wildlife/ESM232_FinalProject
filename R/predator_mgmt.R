@@ -1,3 +1,5 @@
+#' Predator Management Submodel
+#' 
 #' @param t timesteps
 #' @param P0 initial population
 #' @param r intrinsic growth rate
@@ -47,7 +49,7 @@ raven_pop = function(t, P0, r=0.4, K, mgmt_action=T, pred_mgmt_funding, rmv_eff 
 
 
 
-# faclong population mgmt
+# falcon population mgmt
 falcon_pop = function(t, P0, r=0.3, K, mgmt_action=T, pred_mgmt_funding, rmv_eff = 3, min, limit){
   
   falcon_pop = c(P0)

@@ -1,5 +1,5 @@
+#' Habitat Restoration Submodel
 #'
-#'#'
 #' @a coeff for initial funding & habitat area relationship
 #' @b coeff for maintenance funding & habitat area relationship
 #' @c coeff for habitat area change without action

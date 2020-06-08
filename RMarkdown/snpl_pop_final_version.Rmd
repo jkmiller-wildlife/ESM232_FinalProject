@@ -1,7 +1,7 @@
 ---
-title: "Snowy Plover Management"
-author: "Jamie Miller"
-date: "May 31, 2020"
+title: "ESM 232 Final Project - Snowy Plover Management"
+author: "Jamie Miller and Donny Kim"
+date: "8 June 2020"
 output: html_document
 ---
 
@@ -13,18 +13,20 @@ source("../R/snpl.R")
 source("../R/habit.R")
 ```
 
-## 1. Set up Leslie Matrices for snowy plover age structure population model
+Our model estimates the impacts of different management strategies on the Vandenberg Air Force Base (VAFB) population the the threatened Western snowy plover. At breeding sites such as VAFB, several management strategies such as habitat restoration, lethal predator removal and non-lethal predator removal may be employed to protect the plover population. Each of these strategies protects a different plover life stage, but also requires funding and experienced personnel to conduct the management activities. We started with an age-structure Leslie Matrix Model to predict trends in the snowy plover populations. We then added habitat restoration and predator management submodels to predict how these management strategies may impact the plover population over a given number of years. This model can help wildlife biologists make strategic management decisions while considering funding and the best outcome for the managed species. 
+
+### 1. Set up Leslie Matrix for snowy plover age-structure population model
 ```{r setup matrix manually}
 # Four Age Classes: Egg, Chick, Juvenile, Adult
 nclasses = 4
 
 # create a growth matrix to store fecundity and survivorship information
 gmatrix=matrix(nrow=nclasses, ncol=nclasses)
-gmatrix
+#gmatrix
 
 # change NAs to zero
 gmatrix[]=0.0
-gmatrix
+#gmatrix
 
 # assign values for fecundity for each of the age classes 
 # notes that fecundity rates are births per capita (number in class) per time step
@@ -34,7 +36,7 @@ gmatrix
 
 fecund =  c(0,0,0,5.25)
 
-# enter into our matrix
+# enter into matrix
 gmatrix[1,]=fecund
  
 # Survivorship probabilities (to the next class) per time step, using 2019 data.
@@ -55,17 +57,16 @@ Now use the matrix to grow a population
 ```{r test matrix}
 # start with an initial population, lets say 1 individual in each class
 
-#p0 = rep(1, times=nclasses)
 p0 = c(1156,588,134,220)
 
 # advance to the next time step
-# note the use of matrix multiplication
+# use matrix multiplication
 p1 = gmatrix %*% p0
-p1
+#p1
 
-# has the total number of individuals changed?
-sum(p1)
-sum(p0)
+# check if total number of individuals changed
+#sum(p1)
+#sum(p0)
 
 # growth rate
 sum(p1)/sum(p0)
@@ -79,16 +80,16 @@ pop = cbind.data.frame(p0,p1,p2,p3)
 pop$age = c("1_Eggs","2_Chicks","3_Juveniles","4_Adults")
 
 popl = pop %>% gather(key="timestep",value="pop",-age)
-ggplot(popl, aes(timestep, pop,fill=as.factor(age)))+geom_col(position="dodge")+labs(fill="Age Group")
+#ggplot(popl, aes(timestep, pop,fill=as.factor(age)))+geom_col(position="dodge")+labs(fill="Age Group")
 
 # I'm not sure this accomplishes what I want it to accomplish.
-# Use the snpl.R function instead.
+# Use the snpl.R function to incorporate habitat and predator submodels.
 
 ```
 
 
-## 2. Use the snpl.R function to calcutlate the age structure model and predict adult population over time. 
-```{r multitime}
+### 2. Use the snpl.R function to calculate the age structure model and predict adult population over time. 
+```{r multitime 2019 data}
 
 source("../R/snpl.R")
 
@@ -103,17 +104,11 @@ F_adult = 5.25*0.6 # 1156/220 # 5.25 eggs per adult, M to F ratio of 0.6 (3 male
 #588/1156 # 0.509 Hatch Rate, Chicks/Eggs
 #134/588 # 0.228 Fledge rate, Fledges/Eggs
 
-# Survivorship - based on 2019 survivoral probabilities
-p_egg = 1-50.9/100 # Hatch rate
-p_chick = 1-22.8/100 # Fledge rate 
-p_fledge = 1-33/100 # First Winter Survival, assume 33% make it; Adjust this value as needed.
-p_adult = 1-66/100 # Adult survivorship, assume 66% make it; Adjust this value as needed.
-
-####===============================================================================Please take a look.
-### It seems that "p_xxx" value from above is actually a "deathrate" not a "possibility of  surviving".
-### And I guess Leslie matrix(4x4) should take in (possibility of surviving) not (deathrate)
-###=================================================================================================
-
+# Survivorship - based on 2019 survival probabilities
+p_egg = 50.9/100 # Hatch rate
+p_chick = 22.8/100 # Fledge rate 
+p_fledge = 33/100 # First Winter Survival, assume 33% make it; Adjust this value as needed.
+p_adult = 66/100 # Adult survivorship, assume 66% make it; Adjust this value as needed.
 
 
 # initial population parameters
@@ -122,8 +117,8 @@ ini = c(1156,588,134,220)
 n_years = 15
 fert_snpl = c(0,0,0,F_adult)
 surv_snpl = c(p_egg,p_chick,p_fledge,p_adult)
-K = 10000 # VAFB Carrying capacity, based on Recover Goals; lookup actual value and adjust 
-   ### K is not working in the model the way I thin kit should. Want it to apply only to adults, but it is applying to all life stages.
+K = 1000 # VAFB Carrying capacity, based on Recover Goals; can adjust 
+   ### K is not working in the model the way I think it should. Want it to apply only to adults, but it is applying to all life stages.
    ### Consider removing K from model and representing this information graphically.
 ### ===================================================================================
 ### changed code in snpl.R(line 41~44), and now K only applies to adult population. ###
@@ -131,7 +126,72 @@ K = 10000 # VAFB Carrying capacity, based on Recover Goals; lookup actual value 
 
 snpl_pop=snpl_popK(fert_snpl, surv_snpl, ini, n_years,K) # Population Structure
 
-head(snpl_pop)
+#head(snpl_pop)
+
+# Plot adult population by year
+year = seq(from=1, to=n_years)
+snpl_tot = cbind.data.frame(year=year, adult_pop=snpl_pop$pop_structure[4,])
+
+ggplot(snpl_tot, aes(year, adult_pop)) +
+         geom_col() +
+         labs(y="Total Adult SNPL Population")
+
+
+# Plot all ages by year
+snpl_ages = cbind.data.frame(year=year, t(snpl_pop$pop_structure))
+snpl_agesl <- snpl_ages %>% 
+  gather(key="agecat", value="pop",-year) %>% 
+  mutate(age = case_when(agecat == "1" ~ "Eggs",
+                         agecat == "2" ~ "Chicks",
+                         agecat == "3" ~ "Juveniles",
+                         agecat == "4" ~ "Adults"))
+
+ages = c("Eggs","Chicks","Juveniles","Adults")
+
+ggplot(snpl_agesl, aes(year, pop, fill=age)) +
+  geom_col() +
+  labs(y="Population", fill="Age Group")
+
+# The following graphs predict snowy plover adult population and age structure over 15 years if 2019 fecundity and survivorship rates apply to all years.
+
+```
+
+If the VAFB snowy plover population is not managed and the stage-specific survival probabilities follow 2019 levels, the adult population will fall from 220 to 22 individuals in 15 years. Each age group is projected to shrink every year. This is assuming that the fledge rate remains low and over winter and adult survival is average.
+
+```{r multitime 25-yr mean}
+
+source("../R/snpl.R")
+
+# At VAFB: average fledge succecss is 1.3 fledges per male; in 2019, 220 adults, 1156 eggs, 588 chicks, 134 fledges 
+### 1156/220 # 5.25 eggs per adult
+### 220/1156 # 0.19 adults per egg; that makes no sense as a measure of fecundity
+
+# Fecundity Rates
+F_adult = 5.25*0.6 # 1156/220 # 5.25 eggs per adult, M to F ratio of 0.6 (3 males to 2 females). represents number eggs per female; adjust for diff sex ratios
+
+# Survivorship probabilities (to the next class) per time step - based on 25 year mean survival probabilities
+p_egg = 45.9/100 # Hatch rate
+p_chick = 36.3/100 # Fledge rate 
+p_fledge = 33/100 # First Winter Survival, assume 25-50% make it, 33% on average; Adjust this value as needed.
+p_adult = 66/100 # Adult survivorship, assume 50-75% make it, 66% on average; Adjust this value as needed.
+
+
+# initial population parameters
+# In 2019, 1156 eggs, 588 chicks, 134 fledges, 220 adults
+ini = c(1156,588,134,220)
+n_years = 15
+fert_snpl = c(0,0,0,F_adult)
+surv_snpl = c(p_egg,p_chick,p_fledge,p_adult)
+K = 1000 # VAFB Carrying capacity, based on Recover Goals; can adjust 
+   ### K is not working in the model the way I think it should. Want it to apply only to adults, but it is applying to all life stages.
+   ### Consider removing K from model and representing this information graphically.
+### ===================================================================================
+### changed code in snpl.R(line 41~44), and now K only applies to adult population. ###
+### ===================================================================================
+
+snpl_pop=snpl_popK(fert_snpl, surv_snpl, ini, n_years,K) # Population Structure
+
+#head(snpl_pop)
 
 # Plot adult population by year
 year = seq(from=1, to=n_years)
@@ -145,36 +205,43 @@ ggplot(snpl_tot, aes(year, adult_pop)) +
 # Plot all ages by year
 snpl_ages = cbind.data.frame(year=year, t(snpl_pop$pop_structure))
 snpl_agesl = snpl_ages %>% 
-  gather(key="agecat", value="pop",-year)
+  gather(key="agecat", value="pop",-year) %>% 
+  mutate(age = case_when(agecat == "1" ~ "Eggs",
+                         agecat == "2" ~ "Chicks",
+                         agecat == "3" ~ "Juveniles",
+                         agecat == "4" ~ "Adults"))
 
-ggplot(snpl_agesl, aes(year, pop, fill=agecat)) +
+ggplot(snpl_agesl, aes(year, pop, fill=age)) +
   geom_col() +
   labs(y="Population", fill="Age Group")
 
 # The following graphs predict snowy plover adult population and age structure over 15 years if 2019 fecundity and survivorship rates apply to all years.
 
 ```
+
+With the same analysis, but setting the stage-specific survival probabilities to follow the 25 year mean values, the adult population will fall from 220 to 43 individuals in 15 years. If the over winter and adult survival are lowered to 25% and 50%, respectively, the population is projected to plummet to 5 individuals. This highlights the need for management actions that impact all stages of the plover life cycle. In the following analysis, we examine how management of habitat and predators may impact the snowy plover population at VAFB. We predict that increased management activities will increase the probability of each plover life stage surviving to the next, thus increasing the final snowy plover adult population.
+
 <br><br>
 
-## 3. Apply Habitat and Predator Management Functions
+### 3. Apply Habitat and Predator Management Functions
 ```{r}
 # Output matrix of predator MGMT should go into snpl.R
 
 source("../R/predator_mgmt.R")
-source("../R/snpl.R") # I don't know why but RMD keep losting snpl_pop3 function from its environment.
+source("../R/snpl.R")
 
 F_adult = 5.25*0.6 # 1156/220 # 5.25 eggs per adult, M to F ratio of 0.6 (3 males to 2 females). represents number eggs per female; adjust for diff sex ratios
 ini = c(1156,588,134,220)
 n_years = 15
 fert_snpl = c(0,0,0,F_adult)
 surv_snpl = c(p_egg,p_chick,p_fledge,p_adult)
-K = 10000
+K = 1000
 year = seq(from=1, to=n_years)
 
 
 funding = 10 #in thousands?
-raven_p = raven_pop(n_years, 80, 0.4, 200, mgmt_action = T, funding, rmv_eff= 4, min = 0.2, limit= 0.5)
-falcon_p = falcon_pop(n_years, 40, 0.3, 100, mgmt_action = T, funding, rmv_eff= 4, min = 0.3, limit = 0.8)
+raven_p = raven_pop(n_years, 80, 0.4, 200, mgmt_action = T, funding, rmv_eff= 4, min = 0.2, limit= 0.5) # inital population = 80 ravens
+falcon_p = falcon_pop(n_years, 6, 0.3, 100, mgmt_action = T, funding, rmv_eff= 4, min = 0.3, limit = 0.8) # inital population = 6 falcons
 
 tmp = list(egg_predation(raven_p), chick_predation(raven_p, falcon_p), juvenile_predation(falcon_p), adult_predation(falcon_p))
 tmp2 = list(raven_p, falcon_p)
@@ -204,11 +271,11 @@ area = habitat_area(1, init_mgmt = T, maint_mgmt = T, init_funding = 200, maint_
     ### Survivorship_t = 1 - deathr_t
     ###                = 1- (0.8 * deathr_0/predator_0 * predator_t) - 0.2 * deathr_0 * total_t/total_0
 
-### With survivorship, not deathrate.
-p_egg = 50.9/100 # Hatch rate
-p_chick = 22.8/100 # Fledge rate 
-p_fledge = 33/100 # First Winter Survival, assume 33% make it; Adjust this value as needed.
-p_adult = 66/100 # Adult survivorship, assume 66% make it; Adjust this value as needed.
+### With survivorship, not deathrate. Use 25-year mean values for hatch and fledge rate, and mean estimate for first winter and adult survival.
+p_egg = 45.9/100 # Hatch rate
+p_chick = 36.3/100 # Fledge rate 
+p_fledge = 33/100 # First Winter Survival
+p_adult = 66/100 # Adult survivorship
 surv_snpl = c(p_egg,p_chick,p_fledge,p_adult)
 
 snpl_popk3=snpl_pop3(fert_snpl, surv_snpl, ini, n_years, K, predatorpop_matrix, area) # Test purpose
@@ -216,7 +283,7 @@ snpl_tot3 = cbind.data.frame(year=year, adult_pop=snpl_popk3$pop_structure[4,])
 
 
 
-# Plot all ages by year
+# Plot all results by year
 {
   p0 <- ggplot()+
     geom_line(aes(seq(1, ncol(predatorpop_matrix)),predatorpop_matrix[2,], color="falcon"))+
@@ -229,9 +296,13 @@ snpl_tot3 = cbind.data.frame(year=year, adult_pop=snpl_popk3$pop_structure[4,])
   
   snpl_ages3 = cbind.data.frame(year=year, t(snpl_popk3$pop_structure))
   snpl_agesl3 = snpl_ages3 %>% 
-  gather(key="agecat", value="pop",-year)
+  gather(key="agecat", value="pop",-year) %>% 
+  mutate(age = case_when(agecat == "1" ~ "Eggs",
+                         agecat == "2" ~ "Chicks",
+                         agecat == "3" ~ "Juveniles",
+                         agecat == "4" ~ "Adults"))
 
-  p2<-ggplot(snpl_agesl3, aes(year, pop, fill=agecat)) +
+  p2<-ggplot(snpl_agesl3, aes(year, pop, fill=age)) +
   geom_col() +
   labs(y="Population", fill="Age Group")
   
@@ -240,10 +311,17 @@ snpl_tot3 = cbind.data.frame(year=year, adult_pop=snpl_popk3$pop_structure[4,])
   show(p2)
 }
 ```
+
+The Habitat Restoration Submodel influences annual plover fecundity by determining how much habitat is available for nesting. Funding for initial restoration and restoration maintenance is incorporated into the model. Greater funding for habitat restoration should translate into more habitat available for nesting and increased plover productivity. The Predator Management Submodel comprises separate lethal and non-lethal removal actions for ravens and peregrine falcons, respectively. Each of these predators target different plover life stages and are also subject to their own management laws. The peregrine falcons are protected under the Endangered Species Act, while ravens are not. These submodels also incorporate funding for the management strategy and whether or not the management actions are conducted. The model calculations for the predator management follow a modified exponential growth model where the predator population will grow unless checked by the management action or the population carrying capacity. The raven management model then influences egg and chick survival probability, while the falcon management model alters juvenile and adult survival. Since falcon management does not permanently remove the predator, a minimum limit was set so that the population never falls below that threshold. This accounts for low-level presence of falcons within the management area.
+
+When all three management programs where funded, the plover population slowly increased over the 15 year period (results shown). When management for falcons was removed, the plover population went to zero within a few years. When management for just ravens was removed, the plover population slowly declined for the entire time frame. The plover population increased when predator management for both species occurred, but there was no habitat restoration.
+
 <br><br>
 
 ### 4. Apply Sobol sensitivity analysis
 ```{r}
+# Run the Sobol sensitivity analysis on 2019 values for initial parameters.
+
 source("../R/predator_mgmt.R")
 source("../R/snpl.R")
 source("../R/habit.R")
@@ -333,3 +411,104 @@ tmp = cbind.data.frame(sens_P_totalpop$X, total_pop=sens_P_totalpop$y)
 ggplot(tmp, aes(pred_funding, total_pop))+geom_point()+labs(x="Parm",y="total pop")
 
 ```
+
+
+
+```{r}
+# Run the Sobol sensitivity analysis on 25-year mean values for initial parameters.
+
+source("../R/predator_mgmt.R")
+source("../R/snpl.R")
+source("../R/habit.R")
+
+F_adult = 5.25*0.6 # 1156/220 # 5.25 eggs per adult, M to F ratio of 0.6 (3 males to 2 females). represents number eggs per female; adjust for diff sex ratios
+ini = c(1156,588,134,220)
+n_years = 15
+
+np = 1000
+
+p_egg = 0.459  # Hatch rate; 25-year mean hatch rate, 45.9%
+p_chick = 0.363 # Fledge rate; 25-year mean fledge rate, 36.3%
+p_fledge = 0.25 # First Winter Survival, assume 25-50% make it; Assess low estimate. Adjust this value as needed.
+p_adult = 0.50 # Adult survivorship, assume 50-75% make it; Assess low estimate. Adjust this value as needed.
+
+fert_snpl = c(0,0,0,F_adult)
+surv_snpl = c(p_egg,p_chick,p_fledge,p_adult)
+
+
+habitat_init_funding = rnorm(mean = 200, sd = 50, n=np)
+habitata_maint_funding = rnorm(mean = 50, sd = 20, n=np)
+pred_funding = rnorm(mean = 10, sd = 4, n=np)
+raven_min = runif(n=np, min = 0, max = 0.5)
+raven_lim = runif(n=np, min = 0.5, max = 1)
+falcon_min = runif(n=np, min =0, max = 0.5)
+falcon_lim = runif(n=np, min =0, max = 1)
+X1 = cbind.data.frame(habitat_init_funding=habitat_init_funding, habitata_maint_funding=habitata_maint_funding,
+                      pred_funding=pred_funding, raven_min=raven_min, raven_lim=raven_lim,
+                      falcon_min=falcon_min, falcon_lim=falcon_lim)
+
+habitat_init_funding = rnorm(mean = 200, sd = 10, n=np)
+habitata_maint_funding = rnorm(mean = 30, sd = 5, n=np)
+pred_funding = rnorm(mean = 10, sd = 4, n=np)
+raven_min = runif(n=np, min = 0, max = 0.5)
+raven_lim = runif(n=np, min = 0.5, max = 1)
+falcon_min = runif(n=np, min =0, max = 0.5)
+falcon_lim = runif(n=np, min =0, max = 1)
+X2 = cbind.data.frame(habitat_init_funding=habitat_init_funding, habitata_maint_funding=habitata_maint_funding,
+                      pred_funding=pred_funding, raven_min=raven_min, raven_lim=raven_lim,
+                      falcon_min=falcon_min, falcon_lim=falcon_lim)
+
+library(sensitivity)
+
+sens_P = sobol2007(model = NULL,X1, X2, nboot = 500)
+
+
+wrapper = function(n, initialP, fertility, survivorship,
+                   habitat_init_funding, habitata_maint_funding, pred_funding,
+                   raven_min, raven_lim,falcon_min, falcon_lim,
+                   func) {
+  
+  area = habitat_area(1, init_funding = habitat_init_funding, maint_funding = habitata_maint_funding, n_time=n)
+  
+  raven_p = raven_pop(n, P0=80, K=160, pred_mgmt_funding=pred_funding,
+                      min=raven_min ,limit=raven_lim)
+  
+  falcon_p = falcon_pop(n, P0=50, K=100, pred_mgmt_funding=pred_funding,
+                      min=falcon_min ,limit=falcon_lim)
+  
+  predatorpop_matrix = list(raven_p, falcon_p)
+  predatorpop_matrix = predatorpop_matrix %>% unlist() %>% matrix(ncol=n, byrow = T) # row1= raven, row2=falcon
+
+  snpl_p = snpl_pop3(fertility, survivorship, initialP, nstep=n, K=5000, predatorpop_matrix, area)
+
+  return(snpl_p$total_pop)
+}
+
+
+allresults = mapply(FUN=wrapper, 
+                   habitat_init_funding=sens_P$X$habitat_init_funding,
+                   habitata_maint_funding=sens_P$X$habitata_maint_funding,
+                   pred_funding=sens_P$X$pred_funding,
+                   raven_min=sens_P$X$raven_min, raven_lim=sens_P$X$raven_lim,
+                   falcon_min=sens_P$X$falcon_min, falcon_lim=sens_P$X$falcon_lim,
+                   MoreArgs=list(n=n_years, initialP=ini, fertility=fert_snpl, survivorship=surv_snpl,
+                                 func=snpl_pop3)
+                   )
+
+ggplot(data.frame(total_pop=allresults), aes(x=total_pop))+geom_density()
+
+sens_P_totalpop = sensitivity::tell(sens_P, allresults)
+sens_P_totalpop$S
+sens_P_totalpop$T
+plot(sens_P_totalpop)
+
+tmp = cbind.data.frame(sens_P_totalpop$X, total_pop=sens_P_totalpop$y)
+ggplot(tmp, aes(pred_funding, total_pop))+geom_point()+labs(x="Parm",y="total pop")
+
+```
+
+To test the sensitivity of the plover population to the different management actions we ran a Sobol sensitivity analysis on both the 2019 and the 25-year mean values for the initial parameters. In both tests, plover population was the most sensitive to changes in predator management funding. Theses models only account for a small portion of the factors that influence snowy plover productivity and survivorship. We addressed predator management and habitat restoration because these are the factors that wildlife managers are able to control with some funding and expertise. They are also the factors that are most easily monitored. Food resources likely contribute ore to plover survivorship than is expected, however, it is challenging to collect reliable field data on this metric, attribute mortality to food resource issues, and subsequently do anything about it in the presence of all other management factors. Within our submodels, the uncertainty in the funding parameters corresponds with the variability in funding for wildlife conservation projects between years. In reality, the level of finding available often impacts whether or not the management action can even take place. Our model tests a range of funding, but actual management may incorporate a lower funding threshold. We did not incorporate this detail into our model for the sake of model complexity. Our results further highlight the need for predator management in threatened species recovery programs. Since the success of management action is reliant entirely on funding, this model may be useful supporting documentation in project and funding proposals. It may also aid in determining the most effective use of potentially limited funding.
+
+
+
+
